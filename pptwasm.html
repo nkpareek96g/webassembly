@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Developer's Guide to WebAssembly</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f8f6;
+            color: #4a4a4a;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        .section-title {
+            font-weight: 700;
+            font-size: 2.5rem;
+            line-height: 2.75rem;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .section-subtitle {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+            color: #6b7280;
+            text-align: center;
+            max-width: 56rem;
+            margin: 0 auto 3.5rem auto;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 3px solid transparent;
+            padding-bottom: 0.5rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #4f46e5;
+            border-bottom-color: #4f46e5;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid #e5e7eb;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
+        }
+        .code-block {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            color: #4b5563;
+            background-color: transparent;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            color: #4f46e5;
+            background-color: #eef2ff;
+            border-color: #c7d2fe;
+        }
+        .tab-button:hover:not(.active) {
+            background-color: #f3f4f6;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 450px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .comparison-table tbody tr {
+            transition: background-color 0.2s;
+        }
+        .comparison-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        .persona-tab.active {
+            background-color: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+        }
+        .persona-tab {
+            transition: all 0.3s;
+        }
+        .sub-section-title {
+            font-weight: 600;
+            font-size: 1.5rem;
+            line-height: 2rem;
+            color: #2c3e50;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/90 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-[#2c3e50]">
+                <span class="text-[#4f46e5]">Wasm</span>DeveloperHub
+            </div>
+            <nav class="hidden md:flex space-x-8">
+                <a href="#fundamentals" class="nav-link">Fundamentals</a>
+                <a href="#personas" class="nav-link">Developer Roles</a>
+                <a href="#performance" class="nav-link">Performance</a>
+                <a href="#compilation" class="nav-link">Compilation</a>
+                <a href="#showdown" class="nav-link">Showdown</a>
+                <a href="#memory-js" class="nav-link">Memory & JS</a>
+                <a href="#dev-tools" class="nav-link">Dev Tools</a>
+                <a href="#future" class="nav-link">Future</a>
+            </nav>
+            <button id="mobile-menu-button" class="md:hidden text-2xl">☰</button>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-white p-4 border-t">
+            <a href="#fundamentals" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Fundamentals</a>
+            <a href="#personas" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Developer Roles</a>
+            <a href="#performance" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Performance</a>
+            <a href="#compilation" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Compilation</a>
+            <a href="#showdown" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Showdown</a>
+            <a href="#memory-js" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Memory & JS</a>
+            <a href="#dev-tools" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Dev Tools</a>
+            <a href="#future" class="block py-2 px-4 text-sm hover:bg-gray-100 rounded">Future</a>
+        </div>
+    </header>
+
+    <main>
+        <section id="hero" class="py-20 md:py-28 bg-white">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold text-[#2c3e50] mb-6">The Universal Runtime for Modern Development</h1>
+                <p class="text-lg md:text-xl text-[#6b7280] max-w-4xl mx-auto">
+                    An interactive guide to WebAssembly (Wasm), exploring its role in frontend, backend, DevOps, and mobile development, and comparing it to established technologies like Docker and native toolkits.
+                </p>
+            </div>
+        </section>
+
+        <section id="fundamentals" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Wasm Fundamentals</h2>
+                <p class="section-subtitle">
+                    WebAssembly (Wasm) is a revolutionary binary instruction format designed as a portable compilation target for high-level programming languages like C, C++, Rust, and Go. It enables code written in these languages to run on the web and increasingly outside the browser at near-native speed. Wasm complements JavaScript, enhancing the web platform's capabilities.
+                </p>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="card text-center">
+                        <div class="text-5xl mb-4">⚡️</div>
+                        <h3 class="text-xl font-bold mb-2">Fast</h3>
+                        <p>Executes at near-native speed by taking advantage of common hardware capabilities available on a wide range of platforms.</p>
+                    </div>
+                    <div class="card text-center">
+                        <div class="text-5xl mb-4">🛡️</div>
+                        <h3 class="text-xl font-bold mb-2">Safe</h3>
+                        <p>Runs in a memory-safe, sandboxed execution environment. It cannot directly access the host system outside of explicitly imported functions.</p>
+                    </div>
+                    <div class="card text-center">
+                        <div class="text-5xl mb-4">🌍</div>
+                        <h3 class="text-xl font-bold mb-2">Portable</h3>
+                        <p>The same Wasm binary can run across different operating systems and architectures, from browsers to servers to edge devices.</p>
+                    </div>
+                    <div class="card text-center">
+                        <div class="text-5xl mb-4">📦</div>
+                        <h3 class="text-xl font-bold mb-2">Compact</h3>
+                        <p>The binary format is small and efficient, enabling fast downloads and reducing the time to first interaction for web applications.</p>
+                    </div>
+                </div>
+                <div class="mt-16 text-center">
+                    <h3 class="sub-section-title">Strategic Advantages</h3>
+                    <div class="grid md:grid-cols-2 gap-8 text-left max-w-4xl mx-auto">
+                        <div class="card">
+                            <h4 class="font-bold text-lg mb-2">Language Diversity</h4>
+                            <p>Breaks the JavaScript monopoly, allowing developers to leverage C, C++, Rust, Go, C#, Python, and more on the web. This broadens the ecosystem and allows teams to use existing expertise and codebases.</p>
+                        </div>
+                        <div class="card">
+                            <h4 class="font-bold text-lg mb-2">Code Reuse</h4>
+                            <p>Facilitates porting of existing legacy or native codebases (e.g., C/C++ libraries for video codecs, physics engines) to the web, accelerating development and reducing costs by tapping into battle-tested code.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="personas" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Wasm for Your Role</h2>
+                <p class="section-subtitle">
+                    WebAssembly's impact varies across different development domains. Select your role to see tailored use cases, benefits, and tools that highlight how Wasm can enhance your specific workflow and projects.
+                </p>
+                <div id="persona-tabs" class="flex flex-wrap justify-center gap-3 mb-12">
+                    <button data-persona="frontend" class="persona-tab py-3 px-6 rounded-full font-semibold text-lg bg-gray-200 text-gray-700 active">Frontend</button>
+                    <button data-persona="backend" class="persona-tab py-3 px-6 rounded-full font-semibold text-lg bg-gray-200 text-gray-700">Backend</button>
+                    <button data-persona="devops" class="persona-tab py-3 px-6 rounded-full font-semibold text-lg bg-gray-200 text-gray-700">DevOps</button>
+                    <button data-persona="mobile" class="persona-tab py-3 px-6 rounded-full font-semibold text-lg bg-gray-200 text-gray-700">Mobile</button>
+                </div>
+
+                <div id="persona-content" class="max-w-5xl mx-auto">
+                    <!-- Frontend Content -->
+                    <div data-content="frontend" class="space-y-8">
+                        <div class="card">
+                            <h3 class="text-2xl font-bold mb-4 text-[#2c3e50]">Frontend: High-Performance Web Experiences</h3>
+                            <p class="mb-4">For frontend developers, Wasm is a game-changer for building complex, performance-intensive web applications. It allows you to move beyond the limitations of JavaScript for CPU-bound tasks, delivering experiences that were previously only possible in native desktop applications.</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Offload Heavy Computations:</strong> Run tasks like image/video editing, 3D rendering, and scientific simulations in the browser without freezing the UI.</li>
+                                <li><strong>Reuse Existing Code:</strong> Port mature C/C++ libraries (e.g., game engines, data processing tools) to the web, saving immense development time.</li>
+                                <li><strong>Enhance Rich UIs:</strong> Power complex UI components with frameworks like Blazor (C#) or Yew (Rust), compiled to Wasm for a responsive user experience.</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <h4 class="text-xl font-bold mb-3">Real-World Example: Figma & Photoshop</h4>
+                            <p>Design tools like <strong>Figma</strong> achieved a 3x faster load time by migrating their rendering engine to Wasm. <strong>Adobe Photoshop</strong> brought its entire C++ desktop application to the web using Wasm, demonstrating its power to enable code reuse on a massive scale. These examples show Wasm's ability to make complex, legacy applications accessible on the web.</p>
+                        </div>
+                    </div>
+
+                    <!-- Backend Content -->
+                    <div data-content="backend" class="hidden space-y-8">
+                        <div class="card">
+                            <h3 class="text-2xl font-bold mb-4 text-[#2c3e50]">Backend: Secure & Efficient Microservices</h3>
+                            <p class="mb-4">On the server, Wasm offers a new paradigm for building microservices and serverless functions. Its lightweight, secure, and portable nature makes it an excellent alternative to containers for specific workloads, especially at the edge.</p>
+                             <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Ultra-Fast Cold Starts:</strong> Wasm modules start in microseconds, making them ideal for serverless functions that need to scale to zero.</li>
+                                <li><strong>Secure Sandboxing:</strong> Safely run untrusted or third-party code (e.g., user-submitted plugins) with strong memory isolation guarantees.</li>
+                                <li><strong>Language Agnosticism:</strong> Write microservices in the best language for the job (Rust, Go, C++) and compile them to a universal Wasm binary.</li>
+                                <li><strong>Resource Efficiency:</strong> Wasm's small memory and CPU footprint reduces operational costs and enables higher density deployments on servers.</li>
+                            </ul>
+                        </div>
+                         <div class="card">
+                            <h4 class="text-xl font-bold mb-3">Real-World Example: Cloudflare & Fastly</h4>
+                            <p>Edge computing platforms like <strong>Cloudflare Workers</strong> and <strong>Fastly Compute@Edge</strong> use Wasm to run code closer to users. This reduces latency for tasks like image optimization or request authentication. Wasm's efficiency is key to making these global, low-latency platforms viable.</p>
+                        </div>
+                    </div>
+
+                    <!-- DevOps Content -->
+                    <div data-content="devops" class="hidden space-y-8">
+                        <div class="card">
+                            <h3 class="text-2xl font-bold mb-4 text-[#2c3e50]">DevOps: A New Artifact for CI/CD</h3>
+                            <p class="mb-4">For DevOps, Wasm introduces a new type of deployment artifact that complements existing container workflows. Its portability and security simplify build and deployment pipelines, especially in polyglot and multi-platform environments.</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Universal Binary:</strong> A single Wasm artifact can be deployed across different OS and CPU architectures, simplifying the build matrix.</li>
+                                <li><strong>Integration with Docker & K8s:</strong> Tools like `runwasi` and Krustlet allow Wasm modules to be run and orchestrated by Docker and Kubernetes, blending Wasm's benefits into existing toolchains.</li>
+                                <li><strong>Reduced Attack Surface:</strong> Wasm modules have no OS dependencies, leading to smaller, more secure images with a minimal attack surface compared to full OS containers.</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                             <h4 class="text-xl font-bold mb-3">Key Trend: Docker + Wasm</h4>
+                            <p>The industry is moving towards a synergistic "Docker *with* Wasm" model. Developers can use familiar Docker tooling to build and run Wasm applications. This allows teams to leverage Wasm's performance and security benefits without abandoning their established container-based CI/CD pipelines and orchestration practices.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile Content -->
+                    <div data-content="mobile" class="hidden space-y-8">
+                         <div class="card">
+                            <h3 class="text-2xl font-bold mb-4 text-[#2c3e50]">Mobile: Cross-Platform Performance Boost</h3>
+                            <p class="mb-4">In mobile development, Wasm is not a replacement for native code (like Swift/Kotlin or NDK) but a powerful tool to enhance cross-platform frameworks like React Native and Flutter. It allows for sharing high-performance logic between web and mobile apps.</p>
+                             <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Code Reuse Across Platforms:</strong> Write a performance-critical module (e.g., a physics engine or data processor) in Rust or C++ once and deploy it on the web, iOS, and Android.</li>
+                                <li><strong>Performance for Hybrid Apps:</strong> Add near-native speed to specific features within a cross-platform app, such as real-time image filters or complex business logic.</li>
+                                <li><strong>Secure & Isolated Logic:</strong> Execute complex logic in a secure Wasm sandbox within the mobile app, isolated from the rest of the application code.</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <h4 class="text-xl font-bold mb-3">Key Consideration: Wasm vs. NDK</h4>
+                            <p>The Android NDK provides deeper, direct access to hardware and mature concurrency models, making it superior for tasks requiring maximum native performance. Wasm is better suited for when cross-platform code reuse and sandboxed security are the primary goals, and the application can tolerate the small overhead of the Wasm runtime.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="performance" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Performance Unlocked</h2>
+                <p class="section-subtitle">
+                    One of Wasm's key advantages is raw speed, especially for computationally intensive tasks. This interactive demo simulates the performance difference for calculating a Fibonacci sequence. Adjust the slider to see how the performance gap changes with complexity.
+                </p>
+                <div class="card">
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                    <div class="mt-8">
+                        <label for="perf-slider" class="block text-center font-semibold mb-2">Calculation Complexity (Fibonacci Number)</label>
+                        <input id="perf-slider" type="range" min="25" max="45" value="35" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs mt-1">
+                            <span>Low</span>
+                            <span id="slider-value" class="font-bold">35</span>
+                            <span>High</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-4 text-center">
+                        WebAssembly achieves near-native performance due to its efficient binary format, simpler virtual machine, and the ability for browsers to perform Ahead-Of-Time (AOT) compilation, which is more predictable than JavaScript's Just-In-Time (JIT) compilation for certain workloads.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="compilation" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">The Compilation Pipeline</h2>
+                <p class="section-subtitle">WebAssembly is a compilation target. Developers write in high-level languages, and a toolchain compiles that code into a `.wasm` binary. Explore the typical workflow for popular languages and how Wasm executes.</p>
+                <div class="card max-w-4xl mx-auto">
+                    <div id="lang-tabs" class="flex justify-center border-b border-gray-200 mb-6">
+                        <button data-lang="cpp" class="tab-button active">C / C++</button>
+                        <button data-lang="rust" class="tab-button">Rust</button>
+                        <button data-lang="go" class="tab-button">Go</button>
+                        <button data-lang="as" class="tab-button">AssemblyScript</button>
+                    </div>
+                    <div id="lang-content">
+                        <!-- C++ Content -->
+                        <div data-content="cpp">
+                            <h4 class="font-bold text-lg mb-2">Toolchain: Emscripten</h4>
+                            <p class="mb-4">Emscripten is a complete compiler toolchain for C/C++, built on LLVM. It outputs a `.wasm` file and the necessary JavaScript "glue" code to run it on the web.</p>
+                            <p class="font-semibold mb-2">Example Command:</p>
+                            <div class="code-block">emcc my_code.c -o my_code.html -s WASM=1 -s EXPORTED_FUNCTIONS="['_add']" -s NO_EXIT_RUNTIME=1</div>
+                            <p class="text-sm text-gray-600 mt-3">This command compiles `my_code.c`, specifies Wasm output, and explicitly exports `_add` to make it callable from JavaScript. `NO_EXIT_RUNTIME` prevents the runtime from quitting.</p>
+                        </div>
+                        <!-- Rust Content -->
+                        <div data-content="rust" class="hidden">
+                            <h4 class="font-bold text-lg mb-2">Toolchain: wasm-pack</h4>
+                            <p class="mb-4">`wasm-pack` is the official tool for building and packaging Rust crates that target WebAssembly. It integrates with `wasm-bindgen` to handle JS interoperability.</p>
+                            <p class="font-semibold mb-2">Example Command:</p>
+                            <div class="code-block">wasm-pack build --target web</div>
+                            <p class="text-sm text-gray-600 mt-3">This command builds the Rust library in the current directory, targeting a web browser environment and generating an ES module package in a `pkg` directory.</p>
+                        </div>
+                        <!-- Go Content -->
+                        <div data-content="go" class="hidden">
+                             <h4 class="font-bold text-lg mb-2">Toolchain: Official Go Compiler</h4>
+                            <p class="mb-4">The Go toolchain has built-in support for Wasm. It requires a specific JavaScript support file (`wasm_exec.js`) to run the compiled module.</p>
+                            <p class="font-semibold mb-2">Example Command:</p>
+                            <div class="code-block">GOOS=js GOARCH=wasm go build -o main.wasm main.go</div>
+                            <p class="text-sm text-gray-600 mt-3">This command compiles `main.go` into `main.wasm` by setting the target operating system to `js` and architecture to `wasm`.</p>
+                        </div>
+                         <!-- AssemblyScript Content -->
+                        <div data-content="as" class="hidden">
+                            <h4 class="font-bold text-lg mb-2">Toolchain: AssemblyScript Compiler (`asc`)</h4>
+                            <p class="mb-4">AssemblyScript compiles a strict variant of TypeScript directly to WebAssembly. It offers a familiar development experience for TypeScript developers.</p>
+                            <p class="font-semibold mb-2">Example Command:</p>
+                            <div class="code-block">npx asc assembly/index.ts --target release</div>
+                            <p class="text-sm text-gray-600 mt-3">This command compiles the `index.ts` file, generating an optimized WebAssembly binary (`build/release.wasm`) and JavaScript glue code.</p>
+                        </div>
+                    </div>
+
+                    <h3 class="sub-section-title text-center mt-12">Wasm Runtime Execution Modes</h3>
+                    <p class="text-center text-gray-600 mb-8">Once compiled, Wasm binaries are executed by runtimes using different strategies.</p>
+                    <div class="grid md:grid-cols-3 gap-6 text-left">
+                        <div class="card">
+                            <h4 class="font-bold text-xl mb-2">Interpreters</h4>
+                            <p class="mb-2">Execute Wasm bytecode instruction-by-instruction without prior compilation to native code.</p>
+                            <ul class="list-disc list-inside text-sm">
+                                <li>Simpler design, smaller footprint.</li>
+                                <li>Slower performance than compiled code.</li>
+                                <li>Useful for debugging or restricted environments (e.g., iOS).</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <h4 class="font-bold text-xl mb-2">Just-In-Time (JIT) Compilers</h4>
+                            <p class="mb-2">Translate Wasm bytecode to native machine code on the fly, just before execution.</p>
+                            <ul class="list-disc list-inside text-sm">
+                                <li>Used by modern browsers (V8, SpiderMonkey).</li>
+                                <li>Tiered compilation (e.g., V8's Liftoff for fast startup, TurboFan for optimization).</li>
+                                <li>Balances rapid compilation with optimized runtime performance.</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <h4 class="font-bold text-xl mb-2">Ahead-Of-Time (AOT) Compilers</h4>
+                            <p class="mb-2">Translate Wasm to native machine code once, typically during the build process, before execution.</p>
+                            <ul class="list-disc list-inside text-sm">
+                                <li>Offers the best possible performance with no runtime compilation overhead.</li>
+                                <li>Ideal for production environments where consistent high speed is critical.</li>
+                                <li>Examples: Wasmer (with LLVM backend), Wasmtime.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="showdown" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Technology Showdown</h2>
+                <p class="section-subtitle">How does WebAssembly stack up against established technologies? This section provides a direct, data-driven comparison of Wasm's performance and characteristics against Docker containers and native mobile development kits.</p>
+
+                <div class="card mb-12">
+                    <h3 class="text-2xl font-bold text-center mb-2 text-[#2c3e50]">Wasm vs. Docker Containers</h3>
+                    <p class="text-center text-gray-600 mb-8">A look at key resource metrics for server-side deployments.</p>
+                    <div class="chart-container">
+                        <canvas id="dockerWasmChart"></canvas>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-4 text-center">
+                        This chart illustrates Wasm's significantly lower cold start times, smaller image sizes, and reduced memory footprint compared to Docker containers, making it ideal for serverless and edge computing. Note the logarithmic scale on the Y-axis for better visualization of the differences.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-2xl font-bold text-center mb-2 text-[#2c3e50]">Wasm vs. Android NDK</h3>
+                    <p class="text-center text-gray-600 mb-8">A qualitative comparison for mobile application development.</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[700px] comparison-table">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="font-bold text-[#2c3e50]">Feature</th>
+                                    <th class="font-bold text-[#4f46e5]">WebAssembly (in Hybrid App)</th>
+                                    <th class="font-bold text-gray-700">Android NDK (Native)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>Performance</strong></td><td>Near-native, but with runtime overhead. Slower than pure native.</td><td>Maximum possible performance with direct hardware access.</td></tr>
+                                <tr><td><strong>System Access</strong></td><td>Highly restricted and sandboxed via WASI.</td><td>Full, unconstrained access to OS and hardware features.</td></tr>
+                                <tr><td><strong>Portability</strong></td><td>Excellent. Single binary runs on web, iOS, Android.</td><td>Android-specific. Requires separate codebase for iOS.</td></tr>
+                                <tr><td><strong>Security</strong></td><td>Very high due to memory-safe sandbox.</td><td>Depends on OS security features and developer implementation.</td></tr>
+                                <tr><td><strong>Multithreading</strong></td><td>Supported but less mature than native equivalents.</td><td>Mature, fine-grained control over system threads.</td></tr>
+                                <tr><td><strong>Best For</strong></td><td>Reusing code across web/mobile; secure plugins.</td><td>Graphics-intensive games; apps needing deep hardware integration.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-4 text-center">
+                        This table highlights how Wasm offers cross-platform code reuse and strong security for hybrid mobile apps, while Android NDK provides ultimate native performance and system access for platform-specific needs.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="memory-js" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6 text-left">
+                <h2 class="section-title">Memory Model & JavaScript Interaction</h2>
+                <p class="section-subtitle">
+                    WebAssembly uses a unique linear memory model for performance and security, and it communicates bidirectionally with JavaScript, enabling powerful mixed-language applications.
+                </p>
+
+                <h3 class="sub-section-title">Linear Memory: A Shared, Secure Playground</h3>
+                <p class="mb-4">
+                    Wasm's linear memory is a single, continuous, growable array of bytes, directly exposed to JavaScript as an `ArrayBuffer`. This enables highly efficient data transfer by avoiding costly serialization. It's strictly sandboxed and all memory accesses are rigorously bounds-checked, preventing vulnerabilities like buffer overflows.
+                </p>
+                <ul class="list-disc list-inside space-y-2 mb-6">
+                    <li><strong>Linear Memory = ArrayBuffer:</strong> Direct, efficient data transfer.</li>
+                    <li><strong>Sandboxed:</strong> Isolated from host system memory for security.</li>
+                    <li><strong>Bounds-checked:</strong> Prevents buffer overflows and out-of-bounds access.</li>
+                    <li><strong>Growable:</strong> Can dynamically expand using `memory.grow()`.</li>
+                    <li><strong>Shared:</strong> Wasm and JavaScript can access the same memory buffer.</li>
+                </ul>
+                <p class="mb-4">
+                    Within this linear memory, segments are typically used for stack, heap (dynamic allocations), static data (globals, strings), and import/export tables. Wasm provides low-level instructions for memory manipulation.
+                </p>
+                <div class="code-block mb-8">
+                    <pre><code>(module
+  (memory 1) ;; Defines 1 page (64KB) of initial memory
+  ;; Store a 32-bit integer (42) at memory offset 0
+  (func $store_value
+    i32.const 0 ;; memory offset
+    i32.const 42 ;; value to store
+    i32.store    ;; store operation
+  )
+  ;; Load a 32-bit integer from memory offset 0
+  (func $load_value (result i32)
+    i32.const 0 ;; memory offset
+    i32.load    ;; load operation
+  )
+)</code></pre>
+                </div>
+                <p class="text-sm text-gray-600 mb-8">
+                    While efficient, the linear memory model requires careful memory management from the source language (e.g., manual `malloc`/`free` for C/C++), as Wasm itself does not provide automatic garbage collection.
+                </p>
+
+                <h3 class="sub-section-title">Bidirectional Communication: JS Calling Wasm, Wasm Calling JS</h3>
+                <p class="mb-4">
+                    WebAssembly and JavaScript work symbiotically, with JavaScript typically orchestrating the loading and interaction, and Wasm modules capable of calling JavaScript functions back.
+                </p>
+                <h4 class="font-bold text-lg mb-2">JavaScript &rarr; WASM Communication:</h4>
+                <p class="mb-4">
+                    JavaScript loads and instantiates Wasm modules using `WebAssembly.instantiateStreaming()`. Exported Wasm functions can then be invoked directly from JavaScript.
+                </p>
+                <div class="code-block mb-8">
+                    <pre><code>async function loadWasm() {
+  const wasmModule = await WebAssembly.instantiateStreaming(
+    fetch('module.wasm')
+  );
+  const wasmInstance = wasmModule.instance;
+  // Call WASM function from JavaScript
+  const result = wasmInstance.exports.calculate(10, 20);
+  console.log('WASM result:', result);
+}</code></pre>
+                </div>
+
+                <h4 class="font-bold text-lg mb-2">WASM &rarr; JavaScript Communication:</h4>
+                <p class="mb-4">
+                    Wasm modules can call JavaScript functions by defining an `importObject` during instantiation, which exposes JavaScript functions for Wasm to import and use.
+                </p>
+                <div class="code-block mb-8">
+                    <pre><code>const importObject = {
+  imports: {
+    log: (value) => console.log('From WASM:', value),
+    sqrt: Math.sqrt,
+    updateDOM: (elementId, value) => {
+      document.getElementById(elementId).textContent = value;
+    }
+  }
+};
+WebAssembly.instantiateStreaming(fetch('module.wasm'), importObject);</code></pre>
+                </div>
+
+                <h3 class="sub-section-title">Efficient Data Transfer and Type Mapping</h3>
+                <p class="mb-4">
+                    Direct access to Wasm's linear memory from JavaScript via typed array views (e.g., `Uint8Array`) is crucial for efficient data transfer, minimizing serialization overhead.
+                </p>
+                <div class="code-block mb-8">
+                    <pre><code>// Access WASM linear memory from JavaScript
+const memory = wasmInstance.exports.memory;
+const memoryArray = new Uint8Array(memory.buffer);
+
+// Write data to WASM memory
+const data = new TextEncoder().encode("Hello WASM");
+memoryArray.set(data, 0);
+
+// Call WASM function that processes this data
+wasmInstance.exports.processString(0, data.length);</code></pre>
+                </div>
+                <p class="text-sm text-gray-600 mb-8">
+                    To maximize performance, minimize frequent, small transfers. Instead, batch process data by copying larger chunks to Wasm memory at once, reducing context switching overhead.
+                </p>
+
+                <h4 class="font-bold text-lg mb-2">Data Type Mapping:</h4>
+                <p class="mb-4">
+                    Understanding how data types translate between Wasm and JavaScript is vital for seamless interoperability.
+                </p>
+                <div class="card overflow-x-auto mb-8">
+                    <table class="w-full min-w-[400px] comparison-table">
+                        <thead>
+                            <tr class="border-b-2 border-gray-200">
+                                <th class="font-bold text-[#2c3e50]">WASM Type</th>
+                                <th class="font-bold text-[#2c3e50]">JavaScript Type</th>
+                                <th class="font-bold text-[#2c3e50]">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>i32</code></td><td><code>number</code></td><td>32-bit integer</td></tr>
+                            <tr><td><code>i64</code></td><td><code>bigint</code></td><td>64-bit integer</td></tr>
+                            <tr><td><code>f32</code></td><td><code>number</code></td><td>32-bit float</td></tr>
+                            <tr><td><code>f64</code></td><td><code>number</code></td><td>64-bit float</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-sm text-gray-600">
+                    This table provides a quick reference for understanding fundamental data exchange mechanisms and helps identify issues related to incorrect type assumptions during data transfer.
+                </p>
+            </div>
+        </section>
+
+        <section id="dev-tools" class="py-16 md:py-24">
+            <div class="container mx-auto px-6 text-left">
+                <h2 class="section-title">Browser Developer Tools Integration</h2>
+                <p class="section-subtitle">
+                    Modern web browsers provide powerful developer tools essential for debugging, inspecting, and analyzing WebAssembly modules, facilitating a smoother development workflow.
+                </p>
+
+                <h3 class="sub-section-title">Debugging WebAssembly</h3>
+                <p class="mb-4">
+                    Chrome DevTools, among others, offers features specifically designed for WebAssembly debugging:
+                </p>
+                <ul class="list-disc list-inside space-y-2 mb-6">
+                    <li><strong>Sources Panel:</strong> View and debug Wasm code. With source maps, it maps Wasm bytecode back to original C, C++, or Rust source, enabling breakpoints and step-through debugging.</li>
+                    <li><strong>Memory Tab:</strong> Inspect WebAssembly linear memory usage to understand allocations, identify leaks, and analyze data structures.</li>
+                    <li><strong>Performance Panel:</strong> Profile Wasm code execution versus JavaScript to identify bottlenecks and optimize mixed-language applications.</li>
+                    <li><strong>Console:</strong> Call Wasm functions directly for quick testing and interaction.</li>
+                </ul>
+                <p class="mb-4">
+                    Quick check for WebAssembly support:
+                </p>
+                <div class="code-block mb-8">
+                    <pre><code>console.log('WebAssembly supported:', typeof WebAssembly !== 'undefined');</code></pre>
+                </div>
+
+                <h3 class="sub-section-title">Inspecting WASM Modules</h3>
+                <p class="mb-4">
+                    The `WebAssembly` global object provides APIs for programmatically inspecting loaded Wasm modules.
+                </p>
+                <div class="code-block mb-8">
+                    <pre><code>async function inspectWasm() {
+    console.log('WebAssembly supported:', 'WebAssembly' in window);
+    const response = await fetch('fibonacci.wasm'); // Replace with your .wasm file
+    const bytes = await response.arrayBuffer();
+    console.log('WASM file size:', bytes.byteLength, 'bytes');
+    const module = await WebAssembly.compile(bytes);
+    console.log('Module compiled successfully');
+    const imports = WebAssembly.Module.imports(module);
+    const exports = WebAssembly.Module.exports(module);
+    console.log('Imports:', imports);
+    console.log('Exports:', exports);
+    const instance = await WebAssembly.instantiate(module);
+    console.log('Available functions:', Object.keys(instance.exports));
+}
+// Call inspectWasm() in your browser console to run.</code></pre>
+                </div>
+                <p class="text-sm text-gray-600 mb-8">
+                    This function checks for Wasm support, fetches the `.wasm` file, compiles it, and then inspects its imports (what it needs from JS) and exports (what it provides to JS).
+                </p>
+
+                <h3 class="sub-section-title">Memory Analysis</h3>
+                <p class="mb-4">
+                    Analyzing the WebAssembly linear memory is crucial for optimizing performance and debugging memory-related issues.
+                </p>
+                <div class="code-block mb-8">
+                    <pre><code>function analyzeWasmMemory(instance) { // Pass the Wasm instance
+    if (!instance || !instance.exports || !instance.exports.memory) {
+        console.log('WASM instance or memory not available');
+        return;
+    }
+    const memory = new Uint8Array(instance.exports.memory.buffer);
+    const totalMemory = memory.length;
+    console.log(`WASM Memory Analysis:`);
+    console.log(`Total memory: ${totalMemory} bytes (${(totalMemory/1024/1024).toFixed(2)} MB)`);
+    console.log('Memory object:', memory.constructor.name);
+
+    const sampleSize = Math.min(10000, totalMemory); // Sample a larger portion
+    let usedBytes = 0;
+    for (let i = 0; i < sampleSize; i++) {
+        if (memory[i] !== 0) usedBytes++;
+    }
+    const estimatedUsage = (usedBytes / sampleSize) * 100;
+    console.log(`Estimated non-zero byte usage (sample): ${estimatedUsage.toFixed(1)}%`);
+}
+// You would call this after your WASM module is loaded and instantiated, e.g.:
+// analyzeWasmMemory(wasmInstance);</code></pre>
+                </div>
+                <p class="text-sm text-gray-600">
+                    This utility accesses the Wasm module's memory buffer, reports total size, and estimates usage by sampling non-zero bytes. It provides a quick overview for memory debugging.
+                </p>
+            </div>
+        </section>
+
+        <section id="future" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Current Landscape & Future Directions</h2>
+                <p class="section-subtitle">
+                    WebAssembly has rapidly evolved from a browser performance optimization to a universal runtime platform, demonstrating significant advancements and promising future developments.
+                </p>
+
+                <h3 class="sub-section-title text-center">Current Landscape</h3>
+                <div class="grid md:grid-cols-2 gap-8 mb-12">
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">🌐 Universal Browser Support</h4>
+                        <p>Achieved widespread adoption across all major browsers, ensuring consistent performance and reliability for production applications. Supports core Wasm 1.0 spec and JavaScript API.</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">💻 WebAssembly System Interface (WASI)</h4>
+                        <p>Extends Wasm beyond the browser, providing a secure, portable interface for host system interaction (file system, network, env vars). Enables "write once, deploy anywhere" across browsers, servers, edge, and embedded systems.</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">☁️ Server-side WebAssembly</h4>
+                        <p>Gaining traction in microservices and serverless computing due to container-like isolation without overhead, dramatically reduced cold start times (microseconds), and polyglot nature. Used by Cloudflare Workers, Fastly Compute@Edge, and AWS (experimental).</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">🛠️ Maturing Tools & Frameworks</h4>
+                        <p>Ecosystem has sophisticated development environments and optimization tools. Compiler toolchains (Rust, C/C++, AssemblyScript) have improved. Frameworks like Yew (Rust) and Blazor (C#) are emerging, alongside game engine export capabilities.</p>
+                    </div>
+                </div>
+
+                <h3 class="sub-section-title text-center">Future Directions</h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">🧩 Component Model</h4>
+                        <p>Aims to standardize composing applications from multiple Wasm modules, enabling better code reuse, cleaner interfaces, and more sophisticated, modular architectures.</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">🧵 Threading Support</h4>
+                        <p>Through shared memory and atomic operations, threading will unlock parallel computing capabilities, enabling more intensive parallel workloads, especially on server-side runtimes.</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">🗑️ Garbage Collection</h4>
+                        <p>Proposals will enable languages like Java, C#, and Python to compile more efficiently to Wasm by providing native GC support, reducing binary sizes and improving performance for managed languages.</p>
+                    </p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">⚡️ SIMD Instructions</h4>
+                        <p>Standardized Single Instruction, Multiple Data (SIMD) instructions will significantly improve performance for vector operations, graphics processing, and machine learning workloads.</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">↔️ Interface Types</h4>
+                        <p>Will provide better integration between Wasm modules and host environments, eliminating serialization overhead when passing complex data structures between Wasm and JavaScript.</p>
+                    </div>
+                    <div class="card">
+                        <h4 class="font-bold text-xl mb-2">🌍 Ecosystem Expansion</h4>
+                        <p>Wasm continues to expand into new domains: client-side ML inference, blockchain smart contracts, and secure, updateable firmware for IoT devices.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-[#2c3e50] text-white py-10">
+        <div class="container mx-auto px-6 text-center">
+            <p>A unified, interactive guide to WebAssembly for modern developers.</p>
+            <p class="text-sm text-gray-400 mt-2">Synthesized from expert analysis to provide clarity and practical insights.</p>
+            <p class="text-sm text-gray-400 mt-4">Created by: Nirmal Pareek | Presented for: Brown Bag Session | Date: July 30, 2025</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (mobileMenu.classList.contains('hidden') === false) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            const personaTabs = document.getElementById('persona-tabs');
+            const personaContents = document.getElementById('persona-content').children;
+            personaTabs.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const persona = e.target.dataset.persona;
+                    
+                    for (let tab of personaTabs.children) {
+                        tab.classList.remove('active');
+                    }
+                    e.target.classList.add('active');
+
+                    for (let content of personaContents) {
+                        if (content.dataset.content === persona) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    }
+                }
+            });
+
+            const langTabs = document.getElementById('lang-tabs');
+            const langContents = document.getElementById('lang-content').children;
+            langTabs.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const lang = e.target.dataset.lang;
+                    
+                    for (let tab of langTabs.children) {
+                        tab.classList.remove('active');
+                    }
+                    e.target.classList.add('active');
+
+                    for (let content of langContents) {
+                        if (content.dataset.content === lang) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    }
+                }
+            });
+
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            let performanceChart;
+            
+            function createOrUpdatePerformanceChart(complexity) {
+                // These are simulated times to illustrate the performance difference.
+                // The actual performance gain varies significantly based on the task and environment.
+                const jsTime = Math.pow(1.6, complexity) * 0.000001 * 1000; // Convert to milliseconds
+                const wasmTime = jsTime * (0.1 + (complexity / 45) * 0.05); // Wasm is a fraction of JS, scaling slightly
+                
+                const data = {
+                    labels: ['JavaScript (Simulated)', 'WebAssembly (Simulated)'],
+                    datasets: [{
+                        label: 'Execution Time (ms)',
+                        data: [jsTime, wasmTime],
+                        backgroundColor: [
+                            'rgba(231, 76, 60, 0.6)',
+                            'rgba(79, 70, 229, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(231, 76, 60, 1)',
+                            'rgba(79, 70, 229, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+
+                if (performanceChart) {
+                    performanceChart.data.datasets[0].data = [jsTime, wasmTime];
+                    performanceChart.update();
+                } else {
+                    performanceChart = new Chart(performanceCtx, {
+                        type: 'bar',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Execution Time (ms)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value.toFixed(2);
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: ${context.raw.toFixed(2)} ms`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            const slider = document.getElementById('perf-slider');
+            const sliderValue = document.getElementById('slider-value');
+            
+            slider.addEventListener('input', (event) => {
+                const complexity = parseInt(event.target.value);
+                sliderValue.textContent = complexity;
+                createOrUpdatePerformanceChart(complexity);
+            });
+            
+            createOrUpdatePerformanceChart(parseInt(slider.value));
+
+
+            const dockerWasmCtx = document.getElementById('dockerWasmChart').getContext('2d');
+            new Chart(dockerWasmCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Cold Start Time (ms)', 'Image Size (MB)', 'Memory Footprint (MB)'],
+                    datasets: [{
+                        label: 'WebAssembly',
+                        data: [60, 3, 30],
+                        backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                        borderColor: 'rgba(79, 70, 229, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Docker Container',
+                        data: [650, 115, 200],
+                        backgroundColor: 'rgba(107, 114, 128, 0.7)',
+                        borderColor: 'rgba(107, 114, 128, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            type: 'logarithmic',
+                            title: {
+                                display: true,
+                                text: 'Value (Logarithmic Scale)'
+                            }
+                        },
+                        x: {
+                           grid: {
+                                display: false
+                           }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(0) + (context.label.includes('Time') ? ' ms' : ' MB');
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Resource Comparison: Wasm vs. Docker (Log Scale)',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+
+            
+        });
+    </script>
+</body>
+</html>
