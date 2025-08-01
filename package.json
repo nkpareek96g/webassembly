@@ -1,0 +1,20 @@
+{
+  "name": "@nkpareek96g/rust_array",
+  "collaborators": [
+    "Nirmal Pareek nkpareeek96g@gmail.com"
+  ],
+  "description": "High-performance JavaScript-like array utilities using Rust and WebAssembly",
+  "version": "0.1.2",
+  "license": "MIT",
+  "files": [
+    "rust_array_bg.wasm",
+    "rust_array.js",
+    "rust_array.d.ts"
+  ],
+  "main": "rust_array.js",
+  "types": "rust_array.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nkpareek96g/webassembly.git"
+  }
+}

@@ -1,0 +1,36 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const __wbg_rustarrayops_free: (a: number, b: number) => void;
+export const rustarrayops_new: () => number;
+export const rustarrayops_find: (a: number, b: any, c: any) => any;
+export const rustarrayops_find_index: (a: number, b: any, c: any) => number;
+export const rustarrayops_filter: (a: number, b: any, c: any) => any;
+export const rustarrayops_map: (a: number, b: any, c: any) => any;
+export const rustarrayops_reduce: (a: number, b: any, c: any, d: any) => any;
+export const rustarrayops_includes: (a: number, b: any, c: any) => number;
+export const rustarrayops_index_of: (a: number, b: any, c: any) => number;
+export const rustarrayops_last_index_of: (a: number, b: any, c: any) => number;
+export const rustarrayops_some: (a: number, b: any, c: any) => number;
+export const rustarrayops_every: (a: number, b: any, c: any) => number;
+export const rustarrayops_binary_search: (a: number, b: any, c: number) => number;
+export const rustarrayops_chunk: (a: number, b: any, c: number) => any;
+export const rustarrayops_sliding_window: (a: number, b: any, c: number) => any;
+export const rustarrayops_distinct: (a: number, b: any) => any;
+export const rustarrayops_rotate: (a: number, b: any, c: number) => any;
+export const rustarrayops_shuffle: (a: number, b: any) => any;
+export const rustarrayops_zip: (a: number, b: any) => any;
+export const rustarrayops_partition: (a: number, b: any, c: any) => any;
+export const rustarrayops_take: (a: number, b: any, c: number) => any;
+export const rustarrayops_drop: (a: number, b: any, c: number) => any;
+export const rustarrayops_head: (a: number, b: any) => any;
+export const rustarrayops_tail: (a: number, b: any) => any;
+export const rustarrayops_group_by: (a: number, b: any, c: any) => any;
+export const rustarrayops_parallel_map: (a: number, b: any, c: any) => any;
+export const rustarrayops_sort_by: (a: number, b: any, c: any) => any;
+export const __wbindgen_exn_store: (a: number) => void;
+export const __externref_table_alloc: () => number;
+export const __wbindgen_export_2: WebAssembly.Table;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_start: () => void;
